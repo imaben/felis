@@ -3,12 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include "felis.h"
+#include "log.h"
+#include "daemon.h"
 
 felis_config_t __config = {
     .listen_host = "0.0.0.0",
     .listen_port = 8080,
     .threads = 4,
-    .daemon = 0
+    .daemon = 0,
+    .logfile = "/tmp/felis.log",
+    .logmask = LOG_LEVEL_DEBUG
 }, *felis_cfg = &__config;
 
 static const struct option options[] = {
@@ -16,6 +20,8 @@ static const struct option options[] = {
     {"port",   2, NULL, 'p'},
     {"threads", 0, NULL, 't'},
     {"daemon", 0, NULL, 'd'},
+    {"log",    0, NULL, 'l'},
+    {"logmask", 0, NULL, 'm'},
     {"help",   0, NULL, 'H'},
 };
 
@@ -55,13 +61,28 @@ int felis_init_options(int argc, char **argv)
             case 'd':
                 felis_cfg->daemon = 0;
                 break;
+            case 'l':
+                felis_cfg->logfile = strdup(optarg);
+                break;
+            case 'm':
+                if (strcasecmp(optarg, "debug") == 0) {
+                    felis_cfg->logmask = LOG_LEVEL_DEBUG;
+                } else if (strcasecmp(optarg, "notice") == 0) {
+                    felis_cfg->logmask = LOG_LEVEL_NOTICE;
+                } else if (strcasecmp(optarg, "warn") == 0) {
+                    felis_cfg->logmask = LOG_LEVEL_WARN;
+                } else if (strcasecmp(optarg, "error") == 0) {
+                    felis_cfg->logmask = LOG_LEVEL_ERROR;
+                } else {
+                    fatal("Invalid logmask argument\n");
+                }
+                break;
             case 'H':
             case '?':
                 usage();
         }
     }
 
-    felis_cfg->listen_port = 8888;
     return 0;
 }
 
@@ -73,6 +94,14 @@ int main(int argc, char **argv)
 
     if (felis_init_options(argc, argv) < 0) {
         fatal("Failed to parse options");
+    }
+
+    if (log_init(felis_cfg->logfile, felis_cfg->logmask) == -1) {
+        fatal("Failed to initialize log file:%s\n", felis_cfg->logfile);
+    }
+
+    if (felis_cfg->daemon) {
+        daemonize();
     }
     return 0;
 }
