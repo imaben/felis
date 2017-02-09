@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include "felis.h"
 #include "log.h"
 #include "daemon.h"
@@ -86,11 +87,24 @@ int felis_init_options(int argc, char **argv)
     return 0;
 }
 
+void init_signal()
+{
+    sigset_t signal_mask;
+    sigemptyset(&signal_mask);
+    sigaddset(&signal_mask, SIGPIPE);
+    pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
+
+    signal(SIGHUP, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
         usage();
     }
+
+    init_signal();
 
     if (felis_init_options(argc, argv) < 0) {
         fatal("Failed to parse options");
