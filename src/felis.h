@@ -1,7 +1,7 @@
-#ifndef __FELIS_H__
-#define __FELIS_H__
+#pragma once
 
 #include <stdint.h>
+#include <event.h>
 
 typedef struct {
     uint8_t *listen_host;
@@ -12,4 +12,10 @@ typedef struct {
     uint32_t logmask;
 } felis_config_t;
 
-#endif
+typedef struct {
+    int listenfd;
+    struct event_base *evbase;
+} felis_ctx_t;
+
+felis_ctx_t *get_felis_ctx();
+

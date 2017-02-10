@@ -87,15 +87,34 @@ int felis_init_options(int argc, char **argv)
     return 0;
 }
 
-void init_signal()
+static void sighandler(int signal) {
+	fprintf(stdout, "Received signal %d: %s.  Shutting down.\n", signal, strsignal(signal));
+    // todo: shutdown server
+}
+
+static void init_signal()
 {
     sigset_t signal_mask;
     sigemptyset(&signal_mask);
     sigaddset(&signal_mask, SIGPIPE);
     pthread_sigmask(SIG_BLOCK, &signal_mask, NULL);
 
-    signal(SIGHUP, SIG_IGN);
-    signal(SIGPIPE, SIG_IGN);
+    struct sigaction siginfo = {
+        .sa_handler = sighandler,
+        .sa_mask = signal_mask,
+        .sa_flags = SA_RESTART,
+    };
+    sigaction(SIGINT, &siginfo, NULL);
+    sigaction(SIGTERM, &siginfo, NULL);
+}
+
+felis_ctx_t *get_felis_ctx()
+{
+    static felis_ctx_t *ctx = NULL;
+    if (NULL == ctx) {
+        ctx = (felis_ctx_t *)malloc(sizeof(*ctx));
+    }
+    return ctx;
 }
 
 int main(int argc, char **argv)
@@ -117,5 +136,8 @@ int main(int argc, char **argv)
     if (felis_cfg->daemon) {
         daemonize();
     }
+	/* Initialize libevent. */
+	event_init();
+
     return 0;
 }
