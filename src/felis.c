@@ -6,6 +6,7 @@
 #include "felis.h"
 #include "log.h"
 #include "daemon.h"
+#include "server.h"
 
 felis_config_t __config = {
     .listen_host = "0.0.0.0",
@@ -35,7 +36,7 @@ void usage()
 {
     printf("Usage: felis [options]\n"
             "Options:\n"
-            "    -r <host>        listen host\n"
+            "    -h <host>        listen host\n"
             "    -p <port>        port number\n"
             "    -d               daemon mode\n"
             "    -t <threads>     threads count\n"
@@ -89,7 +90,7 @@ int felis_init_options(int argc, char **argv)
 
 static void sighandler(int signal) {
 	fprintf(stdout, "Received signal %d: %s.  Shutting down.\n", signal, strsignal(signal));
-    // todo: shutdown server
+    server_shutdown();
 }
 
 static void init_signal()
@@ -108,13 +109,18 @@ static void init_signal()
     sigaction(SIGTERM, &siginfo, NULL);
 }
 
-felis_ctx_t *get_felis_ctx()
+felis_ctx_t *get_ctx()
 {
     static felis_ctx_t *ctx = NULL;
     if (NULL == ctx) {
         ctx = (felis_ctx_t *)malloc(sizeof(*ctx));
     }
     return ctx;
+}
+
+felis_config_t *get_config()
+{
+    return felis_cfg;
 }
 
 int main(int argc, char **argv)
@@ -136,8 +142,10 @@ int main(int argc, char **argv)
     if (felis_cfg->daemon) {
         daemonize();
     }
-	/* Initialize libevent. */
-	event_init();
+
+    if (server_start() < 0) {
+        fatal("Failed to start server");
+    }
 
     return 0;
 }

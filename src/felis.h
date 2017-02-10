@@ -17,5 +17,6 @@ typedef struct {
     struct event_base *evbase;
 } felis_ctx_t;
 
-felis_ctx_t *get_felis_ctx();
+felis_config_t *get_config();
+felis_ctx_t *get_ctx();
 

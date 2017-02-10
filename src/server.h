@@ -1,3 +1,4 @@
 #pragma once
 
-int start_server();
+int server_start();
+void server_shutdown();
