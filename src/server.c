@@ -9,26 +9,26 @@
 #include <unistd.h>
 
 static int setnonblock(int fd) {
-	int flags;
+    int flags;
 
-	flags = fcntl(fd, F_GETFL);
-	if (flags < 0)
+    flags = fcntl(fd, F_GETFL);
+    if (flags < 0)
         return flags;
-	flags |= O_NONBLOCK;
-	if (fcntl(fd, F_SETFL, flags) < 0)
+    flags |= O_NONBLOCK;
+    if (fcntl(fd, F_SETFL, flags) < 0)
         return -1;
-	return 0;
+    return 0;
 }
 
 int server_start()
 {
-	/* Initialize libevent. */
-	event_init();
+    /* Initialize libevent. */
+    event_init();
 
     felis_config_t *cfg = get_config();
     felis_ctx_t *ctx = get_ctx();
-	struct sockaddr_in listen_addr;
-	struct event ev_accept;
+    struct sockaddr_in listen_addr;
+    struct event ev_accept;
     int flags;
     struct linger ln = {0, 0};
 
@@ -37,7 +37,7 @@ int server_start()
         log_error("failed to listen socket");
         return -1;
     }
-	memset(&listen_addr, 0, sizeof(listen_addr));
+    memset(&listen_addr, 0, sizeof(listen_addr));
     listen_addr.sin_family = AF_INET;
     listen_addr.sin_addr.s_addr = htonl(inet_addr(cfg->listen_host));
     listen_addr.sin_port = htons(cfg->listen_port);
@@ -66,11 +66,11 @@ int server_start()
 
     if (NULL == (ctx->evbase = event_base_new())) {
         log_error("Unable to create socket accept event base");
-		close(ctx->listenfd);
+        close(ctx->listenfd);
         return -1;
     }
 
-	event_set(&ev_accept, ctx->listenfd, EV_READ|EV_PERSIST, NULL, NULL);
+    event_set(&ev_accept, ctx->listenfd, EV_READ|EV_PERSIST, NULL, NULL);
     event_base_set(ctx->evbase, &ev_accept);
     event_add(&ev_accept, NULL);
 
@@ -90,6 +90,6 @@ void server_shutdown()
 {
     felis_ctx_t *ctx = get_ctx();
     if (event_base_loopexit(ctx->evbase, NULL)) {
-		log_error("Error shutting down server");
-	}
+        log_error("Error shutting down server");
+    }
 }

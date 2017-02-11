@@ -49,7 +49,7 @@ int felis_init_options(int argc, char **argv)
     int opt, i;
 
     while ((opt = getopt_long(argc, argv,
-                                 "h:p:tdH", options, &i)) != -1)
+                    "h:p:tdH", options, &i)) != -1)
     {
         switch (opt) {
             case 'h':
@@ -89,7 +89,7 @@ int felis_init_options(int argc, char **argv)
 }
 
 static void sighandler(int signal) {
-	fprintf(stdout, "Received signal %d: %s.  Shutting down.\n", signal, strsignal(signal));
+    fprintf(stdout, "Received signal %d: %s.  Shutting down.\n", signal, strsignal(signal));
     server_shutdown();
 }
 
