@@ -114,6 +114,9 @@ static void init_signal()
     };
     sigaction(SIGINT, &siginfo, NULL);
     sigaction(SIGTERM, &siginfo, NULL);
+    sigaction(SIGHUP, &siginfo, NULL);
+    sigaction(SIGQUIT, &siginfo, NULL);
+    sigaction(SIGKILL, &siginfo, NULL);
 }
 
 felis_ctx_t *get_ctx()

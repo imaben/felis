@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <event2/http.h>
@@ -87,8 +88,25 @@ static void default_http_handler(struct evhttp_request *req, void *arg)
     evbuffer_free(buf);
 }
 
+static void child_signal_handler(int sig) {
+     switch (sig) {
+         case SIGTERM:
+         case SIGHUP:
+         case SIGQUIT:
+         case SIGINT:
+         case SIGSEGV:
+         case SIGKILL:
+         case SIGUSR1:
+             event_loopbreak();
+             pthread_exit(0);
+             break;
+     }
+}
+
+
 static void *dispatch(void *arg)
 {
+    signal(SIGUSR1, child_signal_handler);
     felis_thread_t *thread = (felis_thread_t *)arg;
     event_base_dispatch(thread->evbase);
 }
@@ -136,4 +154,8 @@ int server_start()
 void server_shutdown()
 {
     felis_ctx_t *ctx = get_ctx();
+    int i;
+    for (i = 0; i < ctx->cfg->threads; i++) {
+        pthread_kill(ctx->threads[i].thread, SIGUSR1);
+    }
 }
