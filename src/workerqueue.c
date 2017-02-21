@@ -60,7 +60,7 @@ int workqueue_init(workqueue_t *queue, int workers)
     memcpy(&queue->jobs_mutex, &blank_mutex, sizeof(blank_mutex));
 
     for (i = 0; i < workers; i++) {
-        worker = malloc(sizeof(*worker));
+        worker = (worker_t *)malloc(sizeof(*worker));
         if (NULL == worker) {
             log_error("Failed to allocate all workers");
             return -1;
