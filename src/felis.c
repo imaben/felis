@@ -11,6 +11,7 @@
 felis_config_t __config = {
     .listen_host = "0.0.0.0",
     .listen_port = 8080,
+    .timeout = DEFAULT_HTTP_TIMEOUT,
     .threads = 4,
     .daemon = 0,
     .logfile = "/tmp/felis.log",
@@ -20,6 +21,7 @@ felis_config_t __config = {
 static const struct option options[] = {
     {"host",  2, NULL, 'h'},
     {"port",   2, NULL, 'p'},
+    {"timeout", 2, NULL, 'o'},
     {"threads", 0, NULL, 't'},
     {"daemon", 0, NULL, 'd'},
     {"log",    0, NULL, 'l'},
@@ -40,6 +42,7 @@ void usage()
             "    -p <port>        port number\n"
             "    -d               daemon mode\n"
             "    -t <threads>     threads count\n"
+            "    -o <timeout>     http request timeout second\n"
             "    -d               show help\n");
     exit(0);
 }
@@ -49,7 +52,7 @@ int felis_init_options(int argc, char **argv)
     int opt, i;
 
     while ((opt = getopt_long(argc, argv,
-                    "h:p:tdH", options, &i)) != -1)
+                    "h:p:o:t:dH", options, &i)) != -1)
     {
         switch (opt) {
             case 'h':
@@ -58,8 +61,12 @@ int felis_init_options(int argc, char **argv)
             case 'p':
                 felis_cfg->listen_port = atoi(optarg);
                 break;
+            case 'o':
+                felis_cfg->timeout = atoi(optarg);
+                break;
             case 't':
                 felis_cfg->threads = atoi(optarg);
+                break;
             case 'd':
                 felis_cfg->daemon = 0;
                 break;
@@ -114,13 +121,11 @@ felis_ctx_t *get_ctx()
     static felis_ctx_t *ctx = NULL;
     if (NULL == ctx) {
         ctx = (felis_ctx_t *)malloc(sizeof(*ctx));
+        ctx->listenfd = -1;
+        ctx->cfg = felis_cfg;
+        ctx->threads = (felis_thread_t *)calloc(ctx->cfg->threads, sizeof(felis_thread_t));
     }
     return ctx;
-}
-
-felis_config_t *get_config()
-{
-    return felis_cfg;
 }
 
 int main(int argc, char **argv)

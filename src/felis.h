@@ -2,30 +2,31 @@
 
 #include <stdint.h>
 #include <event.h>
-#include "workerqueue.h"
+#include <pthread.h>
 
 typedef struct {
-    uint8_t *listen_host;
-    uint16_t listen_port;
-    uint8_t threads;
-    uint8_t daemon;
-    uint8_t *logfile;
-    uint32_t logmask;
+    char *listen_host;
+    int listen_port;
+    int timeout;
+    int threads;
+    short daemon;
+    char *logfile;
+    short logmask;
 } felis_config_t;
 
 typedef struct {
-    int listenfd;
+    pthread_t thread;
     struct event_base *evbase;
-    workqueue_t workqueue;
-} felis_ctx_t;
+    struct evhttp *httpd;
+} felis_thread_t;
 
 typedef struct {
-    int fd;
-    struct event_base *evbase;
-    struct bufferevent *buf_ev;
-    struct evbuffer *output_buffer;
-} felis_client_t;
+    int listenfd;
+    felis_config_t *cfg;
+    felis_thread_t *threads;
+} felis_ctx_t;
 
-felis_config_t *get_config();
 felis_ctx_t *get_ctx();
 
+#define DEFAULT_HTTP_TIMEOUT 30
+#define VERSION "0.0.1"
