@@ -3,15 +3,16 @@
 #include <stdint.h>
 #include <event.h>
 #include <pthread.h>
+#include "dict.h"
 
 typedef struct {
-    char *listen_host;
-    int listen_port;
-    int timeout;
-    int threads;
-    short daemon;
-    char *logfile;
-    short logmask;
+    char*   listen_host;
+    int     listen_port;
+    int     timeout;
+    int     threads;
+    short   daemon;
+    char*   logfile;
+    short   logmask;
 } felis_config_t;
 
 typedef struct {
@@ -22,8 +23,9 @@ typedef struct {
 
 typedef struct {
     int listenfd;
-    felis_config_t *cfg;
-    felis_thread_t *threads;
+    felis_config_t* cfg;
+    felis_thread_t* threads;
+    dict_t* dicts;
 } felis_ctx_t;
 
 felis_ctx_t *get_ctx();
