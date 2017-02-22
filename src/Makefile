@@ -1,17 +1,28 @@
 # Makefile for Auto Deploy
-C = clang
-LIBDFA = ./dfa
+COMPILER := clang
+LIBNAME := felis
+BUILD_DIRECTORY := build/
+TARGET := $(BUILD_DIRECTORY)$(LIBNAME)
+DFA=./dfa/dfa/
+LIBDFA = $(DFA)build/libdfa.a
 CFLAGS = -g -c `pkg-config --cflags libevent` -I$(LIBDFA)
 LDFLAGS = -lm -lpthread `pkg-config --libs libevent`
+HEADER_FILES := $(wildcard *.h)
+OBJECT_FILES := $(addprefix $(BUILD_DIRECTORY),$(patsubst %.c,%.o,$(wildcard *.c)))
 
-all: felis.c
-	$(CC) -o daemon.o daemon.c $(CFLAGS)
-	$(CC) -o log.o log.c $(CFLAGS)
-	$(CC) -o server.o server.c $(CFLAGS)
-	$(CC) -o dict.o dict.c $(CFLAGS)
-	$(CC) -o felis.o felis.c $(CFLAGS)
-	$(CC) -o felis felis.o daemon.o log.o server.o dict.o $(LDFLAGS)
+all: $(TARGET)
+
+
+$(TARGET): $(BUILD_DIRECTORY) $(OBJECT_FILES)
+	$(MAKE) -C $(DFA)
+	$(COMPILER) -o $(TARGET) $(OBJECT_FILES) $(LIBDFA) $(LDFLAGS)
+
+$(BUILD_DIRECTORY)%.o: %.c $(HEADER_FILES)
+	$(COMPILER) -o $@ -c $< $(CFLAGS) -g
+
+$(BUILD_DIRECTORY):
+	@mkdir -p $(BUILD_DIRECTORY)
 
 clean:
-	rm -rf *.o
-	rm -rf felis
+	rm -rf $(BUILD_DIRECTORY)
+	$(MAKE) -C $(DFA) clean

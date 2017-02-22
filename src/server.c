@@ -109,6 +109,7 @@ static void *dispatch(void *arg)
     signal(SIGUSR1, child_signal_handler);
     felis_thread_t *thread = (felis_thread_t *)arg;
     event_base_dispatch(thread->evbase);
+    return NULL;
 }
 
 int server_start()
