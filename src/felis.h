@@ -23,9 +23,9 @@ typedef struct {
 
 typedef struct {
     int listenfd;
-    felis_config_t* cfg;
-    felis_thread_t* threads;
-    dict_t* dicts;
+    felis_config_t *cfg;
+    felis_thread_t *threads;
+    dict_t *dict_head, *dict_tail;
 } felis_ctx_t;
 
 felis_ctx_t *get_ctx();

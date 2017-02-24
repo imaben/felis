@@ -13,7 +13,9 @@ dict_t *dict_new(char *name)
         strcpy(dict->name, name);
     }
     pthread_rwlock_init(&dict->rwlock, NULL);
+    dict->count = 0;
     dict->trie = dfa_trie_create();
+    dict->next = NULL;
     return dict;
 }
 

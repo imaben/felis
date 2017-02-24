@@ -127,6 +127,8 @@ felis_ctx_t *get_ctx()
         ctx->listenfd = -1;
         ctx->cfg = felis_cfg;
         ctx->threads = (felis_thread_t *)calloc(ctx->cfg->threads, sizeof(felis_thread_t));
+        ctx->dict_head = NULL;
+        ctx->dict_tail = NULL;
     }
     return ctx;
 }

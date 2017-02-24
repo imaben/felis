@@ -10,7 +10,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <event2/http.h>
+#include <evhttp.h>
+#include "cJSON.h"
 
 #define SOCKET_READ_TIMEOUT 10
 #define SOCKET_WRITE_TIMEOUT 10
@@ -69,6 +70,28 @@ static int socket_listen(char *addr, int port)
     return listenfd;
 }
 
+static void output(struct evhttp_request *req, char *content, int code, int json)
+{
+    struct evbuffer *buf = evbuffer_new();
+    evbuffer_add_printf(buf, "%s", content);
+    if (json) {
+        evhttp_add_header(req->output_headers,
+                "Content-Type", "application/json; charset=utf-8");
+    }
+    evhttp_send_reply(req, code, NULL, buf);
+    evbuffer_free(buf);
+}
+
+#define send_bad_request(req, msg) \
+    output(req, msg, HTTP_BADREQUEST, 0)
+#define send_normal_request(req, msg) \
+    output(req, msg, HTTP_OK, 1)
+#define send_internal_request(req, msg) \
+    output(req, msg, HTTP_INTERNAL, 0)
+#define send_bad_method(req, msg) \
+    output(req, msg, HTTP_BADMETHOD, 0)
+
+
 static void default_http_handler(struct evhttp_request *req, void *arg)
 {
     char *html = "<!DOCTYPE html>"
@@ -86,6 +109,40 @@ static void default_http_handler(struct evhttp_request *req, void *arg)
     evbuffer_add_printf(buf, html, VERSION);
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
     evbuffer_free(buf);
+}
+
+static void http_dict_list(struct evhttp_request *req, void *arg)
+{
+    felis_ctx_t *ctx = get_ctx();
+    dict_t *dict;
+    cJSON *js = cJSON_CreateArray();
+
+    FOREACH_DICTS(ctx->dict_head, dict) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddStringToObject(item, "name", dict->name);
+        cJSON_AddNumberToObject(item, "count", dict->count);
+        cJSON_AddItemToArray(js, item);
+    }
+    char *json_encoded = cJSON_Print(js);
+    send_normal_request(req, json_encoded);
+}
+
+static void http_dict_add(struct evhttp_request *req, void *arg)
+{
+}
+
+static void http_dict_handler(struct evhttp_request *req, void *arg)
+{
+    switch (evhttp_request_get_command(req)) {
+        case EVHTTP_REQ_GET: // show dict list
+            http_dict_list(req, arg);
+            break;
+        case EVHTTP_REQ_POST:
+            http_dict_add(req, arg);
+            break;
+        default: // send bad method
+            send_bad_method(req, "Bad Method");
+    }
 }
 
 static void child_signal_handler(int sig) {
@@ -139,7 +196,11 @@ int server_start()
         }
 
         evhttp_set_timeout(thread->httpd, cfg->timeout);
+
+        // set route
         evhttp_set_gencb(thread->httpd, default_http_handler, NULL);
+        evhttp_set_cb(thread->httpd, "/dict", http_dict_handler, NULL);
+
         if (pthread_create(&thread->thread, NULL, &dispatch, (void *)thread) != 0) {
             return -1;
         }
