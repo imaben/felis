@@ -19,12 +19,13 @@
 
 #define get_buffer_from_req(body, req) do { \
     smart_str *__str = (smart_str *)body; \
-    struct evbuffer *__buff = evhttp_request_get_input_buffer(req); \
-    size_t __size = evbuffer_get_length(__buff); \
-    if (__size > 0) { \
-        smart_str_appendl(__str, evbuffer_pullup(__buff, -1), __size); \
-        smart_str_0(__str); \
+    struct evbuffer *__evbuff = evhttp_request_get_input_buffer(req); \
+    int __n = 0; \
+    char __buf[128]; \
+    while ((__n = evbuffer_remove(__evbuff, __buf, 128)) > 0) { \
+        smart_str_appendl(__str, __buf, __n); \
     } \
+    smart_str_0(__str); \
  } while(0)
 
 static int setnonblock(int fd) {
@@ -180,7 +181,6 @@ static void http_dict_add(struct evhttp_request *req, void *arg)
     send_success_result(req);
 
     cJSON_Delete(js);
-    cJSON_Delete(name);
 final:
     smart_str_free(&body);
 }
