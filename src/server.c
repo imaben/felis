@@ -102,10 +102,12 @@ static void output(struct evhttp_request *req, char *content, int code, int json
     output(req, msg, HTTP_INTERNAL, 0)
 #define send_bad_method(req, msg) \
     output(req, msg, HTTP_BADMETHOD, 0)
+#define send_result_failure(req, msg) \
+    send_normal_request(req, "{\"result\": false, \"msg\":" #msg "}")
 #define send_params_errors(req) \
-    send_normal_request(req, "{\"result\": false,\"msg\": \"params error\"}")
-#define send_success_result(req) \
-    send_normal_request(req, "{\"result\": true\"}")
+    send_result_failure(req, "params error")
+#define send_result_success(req) \
+    send_normal_request(req, "{\"result\": true}")
 
 
 static void default_http_handler(struct evhttp_request *req, void *arg)
@@ -157,31 +159,40 @@ static void http_dict_add(struct evhttp_request *req, void *arg)
     js = cJSON_Parse(body.c);
     if (!js) {
         send_params_errors(req);
-        goto final;
+        smart_str_free(&body);
+        return;
     }
 
     name = cJSON_GetObjectItem(js, "name");
     if (!name) {
         send_params_errors(req);
-        cJSON_Delete(js);
         goto final;
     }
 
+    pthread_mutex_lock(&ctx->mutex);
+
+    FOREACH_DICTS(ctx->dict_head, dict) {
+        if (strcmp(dict->name, name->valuestring) == 0) {
+            send_result_failure(req, "dict does exists!");
+            pthread_mutex_unlock(&ctx->mutex);
+            goto final;
+        }
+    }
     dict = dict_new(name->valuestring);
 
-    pthread_mutex_lock(&ctx->mutex);
     if (ctx->dict_head == NULL) {
         ctx->dict_head = ctx->dict_tail = dict;
     } else {
         ctx->dict_tail->next = dict;
         ctx->dict_tail = dict;
     }
+
     pthread_mutex_unlock(&ctx->mutex);
 
-    send_success_result(req);
+    send_result_success(req);
 
-    cJSON_Delete(js);
 final:
+    cJSON_Delete(js);
     smart_str_free(&body);
 }
 
