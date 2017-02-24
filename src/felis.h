@@ -26,6 +26,7 @@ typedef struct {
     felis_config_t *cfg;
     felis_thread_t *threads;
     dict_t *dict_head, *dict_tail;
+    pthread_mutex_t mutex;
 } felis_ctx_t;
 
 felis_ctx_t *get_ctx();

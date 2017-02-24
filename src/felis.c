@@ -129,6 +129,7 @@ felis_ctx_t *get_ctx()
         ctx->threads = (felis_thread_t *)calloc(ctx->cfg->threads, sizeof(felis_thread_t));
         ctx->dict_head = NULL;
         ctx->dict_tail = NULL;
+        pthread_mutex_init(&ctx->mutex, NULL);
     }
     return ctx;
 }

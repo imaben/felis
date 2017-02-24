@@ -12,9 +12,20 @@
 #include <pthread.h>
 #include <evhttp.h>
 #include "cJSON.h"
+#include "smart_str.h"
 
 #define SOCKET_READ_TIMEOUT 10
 #define SOCKET_WRITE_TIMEOUT 10
+
+#define get_buffer_from_req(body, req) do { \
+    smart_str *__str = (smart_str *)body; \
+    struct evbuffer *__buff = evhttp_request_get_input_buffer(req); \
+    size_t __size = evbuffer_get_length(__buff); \
+    if (__size > 0) { \
+        smart_str_appendl(__str, evbuffer_pullup(__buff, -1), __size); \
+        smart_str_0(__str); \
+    } \
+ } while(0)
 
 static int setnonblock(int fd) {
     int flags;
@@ -90,6 +101,10 @@ static void output(struct evhttp_request *req, char *content, int code, int json
     output(req, msg, HTTP_INTERNAL, 0)
 #define send_bad_method(req, msg) \
     output(req, msg, HTTP_BADMETHOD, 0)
+#define send_params_errors(req) \
+    send_normal_request(req, "{\"result\": false,\"msg\": \"params error\"}")
+#define send_success_result(req) \
+    send_normal_request(req, "{\"result\": true\"}")
 
 
 static void default_http_handler(struct evhttp_request *req, void *arg)
@@ -129,6 +144,45 @@ static void http_dict_list(struct evhttp_request *req, void *arg)
 
 static void http_dict_add(struct evhttp_request *req, void *arg)
 {
+    felis_ctx_t *ctx = get_ctx();
+    smart_str body = {0};
+    get_buffer_from_req(&body, req);
+    if (body.len == 0) {
+        send_params_errors(req);
+        return;
+    }
+    cJSON *js, *name;
+    dict_t *dict;
+    js = cJSON_Parse(body.c);
+    if (!js) {
+        send_params_errors(req);
+        goto final;
+    }
+
+    name = cJSON_GetObjectItem(js, "name");
+    if (!name) {
+        send_params_errors(req);
+        cJSON_Delete(js);
+        goto final;
+    }
+
+    dict = dict_new(name->valuestring);
+
+    pthread_mutex_lock(&ctx->mutex);
+    if (ctx->dict_head == NULL) {
+        ctx->dict_head = ctx->dict_tail = dict;
+    } else {
+        ctx->dict_tail->next = dict;
+        ctx->dict_tail = dict;
+    }
+    pthread_mutex_unlock(&ctx->mutex);
+
+    send_success_result(req);
+
+    cJSON_Delete(js);
+    cJSON_Delete(name);
+final:
+    smart_str_free(&body);
 }
 
 static void http_dict_handler(struct evhttp_request *req, void *arg)
