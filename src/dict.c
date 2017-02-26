@@ -52,6 +52,21 @@ int dict_word_add(dict_t *dict, char *word, char *ext)
     return 0;
 }
 
+int dict_match_json(dict_t *dict, char *content, cJSON *js)
+{
+    dfa_match_t match = MATCH_INIT_MIN;
+    int count = 0;
+    while (dfa_trie_find_next(dict->trie, content, &match)) {
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddStringToObject(item, "word", match.pattern->string);
+        cJSON_AddStringToObject(item, "ext", (char *)match.pattern->argument);
+        cJSON_AddItemToArray(js, item);
+        count++;
+    }
+    return count;
+
+}
+
 void dict_destroy(dict_t *dict)
 {
     pthread_rwlock_destroy(&dict->rwlock);

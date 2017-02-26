@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dfa/dfa/dfa.h"
+#include "cJSON.h"
 #include <pthread.h>
 
 #define MAX_DICT_NAME_LENGTH 64
@@ -23,4 +24,5 @@ typedef struct _dict {
 dict_t *dict_new(char *name);
 dict_t *dict_find(dict_t *head, char *name);
 int dict_word_add(dict_t *dict, char *word, char *ext);
+int dict_match_json(dict_t *dict, char *content, cJSON *js);
 void dict_destroy(dict_t *dict);

@@ -224,6 +224,47 @@ final:
     smart_str_free(&body);
 }
 
+static void http_match(struct evhttp_request *req,
+        void *arg, char *dict_name)
+{
+    felis_ctx_t *ctx = get_ctx();
+    dict_t *dict = dict_find(ctx->dict_head, dict_name);
+    if (NULL == dict) {
+        send_not_found(req, "dict does not exists");
+        return;
+    }
+    smart_str body = {0};
+    get_buffer_from_req(&body, req);
+    if (body.len == 0) {
+        send_params_errors(req);
+        return;
+    }
+
+    cJSON *js = NULL, *content = NULL, *js_ret = NULL;
+    js = cJSON_Parse(body.c);
+    if (!js) {
+        send_params_errors(req);
+        smart_str_free(&body);
+        goto final;
+    }
+
+    content = cJSON_GetObjectItem(js, "content");
+    if (!content) {
+        send_params_errors(req);
+        goto final;
+    }
+
+    js_ret = cJSON_CreateArray();
+    dict_match_json(dict, content->valuestring, js_ret);
+    char *json_encoded = cJSON_Print(js_ret);
+    send_normal_request(req, json_encoded);
+
+final:
+    if (js) cJSON_Delete(js);
+    smart_str_free(&body);
+    if (js_ret) cJSON_Delete(js_ret);
+}
+
 static void default_http_handler(struct evhttp_request *req, void *arg)
 {
     char html[] = "<!DOCTYPE html>"
@@ -259,14 +300,19 @@ static void default_http_handler(struct evhttp_request *req, void *arg)
         }
 
     } else if (strncasecmp(uri, "/dict/", strlen("/dict/")) == 0) {
-
         if (evhttp_request_get_command(req) != EVHTTP_REQ_POST) {
                 send_bad_method(req, "Bad Method");
         } else {
             char *dict_name = ((char *)uri) + strlen("/dict/");
             http_dict_word_add(req, arg, dict_name);
         }
-
+    } else if (strncasecmp(uri, "/match/", strlen("/match/")) == 0) {
+        if (evhttp_request_get_command(req) != EVHTTP_REQ_POST) {
+                send_bad_method(req, "Bad Method");
+        } else {
+            char *dict_name = ((char *)uri) + strlen("/match/");
+            http_match(req, arg, dict_name);
+        }
     } else {
         send_not_found(req, "Not Found");
     }
