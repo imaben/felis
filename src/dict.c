@@ -33,6 +33,25 @@ dict_t *dict_find(dict_t *head, char *name)
     return NULL;
 }
 
+int dict_word_add(dict_t *dict, char *word, char *ext)
+{
+    if (!dict || !word) {
+        return -1;
+    }
+
+    dict_wlock(dict);
+
+    int r = dfa_trie_add(dict->trie, word, ext);
+    if (r == -1) {
+        dict_unlock(dict);
+        return -1;
+    }
+    dict->count++;
+    dict_unlock(dict);
+
+    return 0;
+}
+
 void dict_destroy(dict_t *dict)
 {
     pthread_rwlock_destroy(&dict->rwlock);

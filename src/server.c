@@ -111,26 +111,6 @@ static void output(struct evhttp_request *req, char *content, int code, int json
 #define send_result_success(req) \
     send_normal_request(req, "{\"result\": true}")
 
-
-static void default_http_handler(struct evhttp_request *req, void *arg)
-{
-    char *html = "<!DOCTYPE html>"
-        "<html><head><title>Welcome to felis!</title></head>"
-        "<body><center><h1>Welcome to felis!</h1></center><hr />"
-        "<div align=\"center\">felis %s</div><Paste>"
-        "</body></html>";
-
-    struct evbuffer *buf = evbuffer_new();
-    if(!buf) {
-        log_error("failed to create response buffer");
-        return;
-    }
-
-    evbuffer_add_printf(buf, html, VERSION);
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-    evbuffer_free(buf);
-}
-
 static void http_dict_list(struct evhttp_request *req, void *arg)
 {
     felis_ctx_t *ctx = get_ctx();
@@ -207,11 +187,64 @@ static void http_dict_word_add(struct evhttp_request *req,
         send_not_found(req, "dict does not exists");
         return;
     }
+    smart_str body = {0};
+    get_buffer_from_req(&body, req);
+    if (body.len == 0) {
+        send_params_errors(req);
+        return;
+    }
+
+    cJSON *js, *word, *ext;
+    char *ext_str = NULL;
+    js = cJSON_Parse(body.c);
+    if (!js) {
+        send_params_errors(req);
+        smart_str_free(&body);
+        return;
+    }
+
+    word = cJSON_GetObjectItem(js, "word");
+    if (!word) {
+        send_params_errors(req);
+        goto final;
+    }
+    ext = cJSON_GetObjectItem(js, "ext");
+    if (ext) {
+        ext_str = strdup(ext->valuestring);
+    }
+
+    if (dict_word_add(dict, word->valuestring, ext_str) < 0) {
+        send_result_failure(req, "failed to add word to dict");
+    } else {
+        send_result_success(req);
+    }
+
+final:
+    cJSON_Delete(js);
+    smart_str_free(&body);
 }
 
-static void http_dict_handler(struct evhttp_request *req, void *arg)
+static void default_http_handler(struct evhttp_request *req, void *arg)
 {
+    char html[] = "<!DOCTYPE html>"
+        "<html><head><title>Welcome to felis!</title></head>"
+        "<body><center><h1>Welcome to felis!</h1></center><hr />"
+        "<div align=\"center\">felis %s</div><Paste>"
+        "</body></html>";
     const char *uri = evhttp_request_uri(req);
+    if (strlen(uri) == 1 && *uri == '/') {
+        struct evbuffer *buf = evbuffer_new();
+        if(!buf) {
+            log_error("failed to create response buffer");
+            return;
+        }
+
+        evbuffer_add_printf(buf, html, VERSION);
+        evhttp_send_reply(req, HTTP_OK, "OK", buf);
+        evbuffer_free(buf);
+        return;
+    }
+
     if (strcasecmp(uri, "/dict") == 0 || strcasecmp(uri, "/dict/") == 0) {
 
         switch (evhttp_request_get_command(req)) {
@@ -225,7 +258,7 @@ static void http_dict_handler(struct evhttp_request *req, void *arg)
                 send_bad_method(req, "Bad Method");
         }
 
-    } else if (strncasecmp(uri, "/dict/", strlen("/dict/"))) {
+    } else if (strncasecmp(uri, "/dict/", strlen("/dict/")) == 0) {
 
         if (evhttp_request_get_command(req) != EVHTTP_REQ_POST) {
                 send_bad_method(req, "Bad Method");
@@ -234,8 +267,9 @@ static void http_dict_handler(struct evhttp_request *req, void *arg)
             http_dict_word_add(req, arg, dict_name);
         }
 
+    } else {
+        send_not_found(req, "Not Found");
     }
-    send_not_found(req, "Not Found");
 }
 
 static void child_signal_handler(int sig) {
@@ -292,7 +326,6 @@ int server_start()
 
         // set route
         evhttp_set_gencb(thread->httpd, default_http_handler, NULL);
-        evhttp_set_cb(thread->httpd, "/dict", http_dict_handler, NULL);
 
         if (pthread_create(&thread->thread, NULL, &dispatch, (void *)thread) != 0) {
             return -1;
