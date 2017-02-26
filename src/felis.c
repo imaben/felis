@@ -43,7 +43,7 @@ void usage()
             "    -d               daemon mode\n"
             "    -t <threads>     threads count\n"
             "    -o <timeout>     http request timeout second\n"
-            "    -d               show help\n");
+            "    -H               show help\n");
     exit(0);
 }
 
