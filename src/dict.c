@@ -19,6 +19,20 @@ dict_t *dict_new(char *name)
     return dict;
 }
 
+dict_t *dict_find(dict_t *head, char *name)
+{
+    if (!head) {
+        return NULL;
+    }
+    do {
+        if (strcasecmp(head->name, name) == 0) {
+            return head;
+        }
+    } while (NULL != (head = head->next));
+
+    return NULL;
+}
+
 void dict_destroy(dict_t *dict)
 {
     pthread_rwlock_destroy(&dict->rwlock);

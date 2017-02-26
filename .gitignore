@@ -31,5 +31,5 @@
 # Debug files
 *.dSYM/
 *.su
-src/felis
+src/build
 tags

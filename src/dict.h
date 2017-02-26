@@ -21,4 +21,5 @@ typedef struct _dict {
     for ((dict) = (head); (dict) != NULL; (dict) = ((dict)->next))
 
 dict_t *dict_new(char *name);
+dict_t *dict_find(dict_t *head, char *name);
 void dict_destroy(dict_t *dict);

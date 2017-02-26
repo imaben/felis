@@ -102,6 +102,8 @@ static void output(struct evhttp_request *req, char *content, int code, int json
     output(req, msg, HTTP_INTERNAL, 0)
 #define send_bad_method(req, msg) \
     output(req, msg, HTTP_BADMETHOD, 0)
+#define send_not_found(req, msg) \
+    output(req, "{\"result\": false, \"msg\":" #msg "}", HTTP_NOTFOUND, 0)
 #define send_result_failure(req, msg) \
     send_normal_request(req, "{\"result\": false, \"msg\":" #msg "}")
 #define send_params_errors(req) \
@@ -196,18 +198,44 @@ final:
     smart_str_free(&body);
 }
 
+static void http_dict_word_add(struct evhttp_request *req,
+        void *arg, char *dict_name)
+{
+    felis_ctx_t *ctx = get_ctx();
+    dict_t *dict = dict_find(ctx->dict_head, dict_name);
+    if (NULL == dict) {
+        send_not_found(req, "dict does not exists");
+        return;
+    }
+}
+
 static void http_dict_handler(struct evhttp_request *req, void *arg)
 {
-    switch (evhttp_request_get_command(req)) {
-        case EVHTTP_REQ_GET: // show dict list
-            http_dict_list(req, arg);
-            break;
-        case EVHTTP_REQ_POST:
-            http_dict_add(req, arg);
-            break;
-        default: // send bad method
-            send_bad_method(req, "Bad Method");
+    const char *uri = evhttp_request_uri(req);
+    if (strcasecmp(uri, "/dict") == 0 || strcasecmp(uri, "/dict/") == 0) {
+
+        switch (evhttp_request_get_command(req)) {
+            case EVHTTP_REQ_GET: // show dict list
+                http_dict_list(req, arg);
+                break;
+            case EVHTTP_REQ_POST:
+                http_dict_add(req, arg);
+                break;
+            default:
+                send_bad_method(req, "Bad Method");
+        }
+
+    } else if (strncasecmp(uri, "/dict/", strlen("/dict/"))) {
+
+        if (evhttp_request_get_command(req) != EVHTTP_REQ_POST) {
+                send_bad_method(req, "Bad Method");
+        } else {
+            char *dict_name = ((char *)uri) + strlen("/dict/");
+            http_dict_word_add(req, arg, dict_name);
+        }
+
     }
+    send_not_found(req, "Not Found");
 }
 
 static void child_signal_handler(int sig) {
