@@ -27,13 +27,15 @@ $ ./build/felis --help
 
 Usage: felis [options]
 Options:
-    -h <host>        listen host
-    -p <port>        port number
-    -d               daemon mode
-    -t <threads>     threads count
-    -o <timeout>     http request timeout second
-    -H               show help
-    
+-h <host>        listen host
+-p <port>        port number
+-d               daemon mode
+-t <threads>     threads count
+-o <timeout>     http request timeout second
+-l <logfile>     log file
+-m <debug|notice|warn|error>
+-H               show help
+
 ```
 
 

@@ -209,7 +209,7 @@ static void http_dict_word_add(struct evhttp_request *req,
         goto final;
     }
     ext = cJSON_GetObjectItem(js, "ext");
-    if (ext) {
+    if (ext && ext->valuestring) {
         ext_str = strdup(ext->valuestring);
     }
 

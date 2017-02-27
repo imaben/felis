@@ -1,6 +1,7 @@
 #include "dict.h"
 #include <stdlib.h>
 #include <string.h>
+#include "log.h"
 
 dict_t *dict_new(char *name)
 {
@@ -63,6 +64,7 @@ int dict_match_json(dict_t *dict, char *content, cJSON *js)
         cJSON_AddItemToArray(js, item);
         count++;
     }
+    log_debug("match finish, matched:%d", count);
     return count;
 
 }
