@@ -349,6 +349,10 @@ int server_start()
     felis_config_t *cfg = ctx->cfg;
     ctx->listenfd = socket_listen(cfg->listen_host, cfg->listen_port);
 
+    if (ctx->listenfd < 1) {
+        return -1;
+    }
+
     for (; i < cfg->threads; i++) {
         felis_thread_t *thread = &ctx->threads[i];
         thread->evbase = event_init();
