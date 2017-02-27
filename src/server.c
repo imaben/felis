@@ -60,10 +60,12 @@ static int socket_listen(char *addr, int port)
     if (bind(listenfd, (struct sockaddr *)&listen_addr,
                 sizeof(listen_addr)) < 0) {
         log_error("failed to bind %s:%d", addr, port);
+        close(listenfd);
         return -1;
     }
 
     if (listen(listenfd, 128) < 0) {
+        close(listenfd);
         log_error("listen failure");
         return -1;
     }
@@ -76,6 +78,7 @@ static int socket_listen(char *addr, int port)
 #endif
 
     if (setnonblock(listenfd) < 0) {
+        close(listenfd);
         log_error("failed to set server socket to non-blocking");
         return -1;
     }
@@ -396,4 +399,10 @@ void server_shutdown()
     for (i = 0; i < ctx->cfg->threads; i++) {
         pthread_kill(ctx->threads[i].thread, SIGUSR1);
     }
+
+    dict_t *dict;
+    FOREACH_DICTS(ctx->dict_head, dict) {
+        dict_release(dict);
+    }
+    close(ctx->listenfd);
 }

@@ -21,6 +21,8 @@ typedef struct _dict {
 #define FOREACH_DICTS(head, dict) \
     for ((dict) = (head); (dict) != NULL; (dict) = ((dict)->next))
 
+#define dict_release(dict) dfa_trie_release(dict->trie)
+
 dict_t *dict_new(char *name);
 dict_t *dict_find(dict_t *head, char *name);
 int dict_word_add(dict_t *dict, char *word, char *ext);

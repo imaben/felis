@@ -97,9 +97,26 @@ int felis_init_options(int argc, char **argv)
     return 0;
 }
 
+felis_ctx_t *get_ctx()
+{
+    static felis_ctx_t *ctx = NULL;
+    if (NULL == ctx) {
+        ctx = (felis_ctx_t *)malloc(sizeof(*ctx));
+        ctx->listenfd = -1;
+        ctx->cfg = felis_cfg;
+        ctx->threads = (felis_thread_t *)calloc(ctx->cfg->threads, sizeof(felis_thread_t));
+        ctx->dict_head = NULL;
+        ctx->dict_tail = NULL;
+        pthread_mutex_init(&ctx->mutex, NULL);
+    }
+    return ctx;
+}
+
 static void sighandler(int signal) {
+    felis_ctx_t *ctx = get_ctx();
     fprintf(stdout, "Received signal %d: %s.  Shutting down.\n", signal, strsignal(signal));
     server_shutdown();
+    pthread_mutex_destroy(&ctx->mutex);
 }
 
 static void init_signal()
@@ -119,21 +136,6 @@ static void init_signal()
     sigaction(SIGHUP, &siginfo, NULL);
     sigaction(SIGQUIT, &siginfo, NULL);
     sigaction(SIGKILL, &siginfo, NULL);
-}
-
-felis_ctx_t *get_ctx()
-{
-    static felis_ctx_t *ctx = NULL;
-    if (NULL == ctx) {
-        ctx = (felis_ctx_t *)malloc(sizeof(*ctx));
-        ctx->listenfd = -1;
-        ctx->cfg = felis_cfg;
-        ctx->threads = (felis_thread_t *)calloc(ctx->cfg->threads, sizeof(felis_thread_t));
-        ctx->dict_head = NULL;
-        ctx->dict_tail = NULL;
-        pthread_mutex_init(&ctx->mutex, NULL);
-    }
-    return ctx;
 }
 
 int main(int argc, char **argv)
