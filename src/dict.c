@@ -17,6 +17,7 @@ dict_t *dict_new(char *name)
     dict->count = 0;
     dict->trie = dfa_trie_create();
     dict->next = NULL;
+    log_debug("create dict (%s)", name);
     return dict;
 }
 
@@ -25,12 +26,14 @@ dict_t *dict_find(dict_t *head, char *name)
     if (!head) {
         return NULL;
     }
+    log_debug("find dict (%s)", name);
     do {
         if (strcasecmp(head->name, name) == 0) {
             return head;
         }
     } while (NULL != (head = head->next));
 
+    log_warn("dict (%s) not found", name);
     return NULL;
 }
 
@@ -40,6 +43,7 @@ int dict_word_add(dict_t *dict, char *word, char *ext)
         return -1;
     }
 
+    log_debug("dict (%s) add word (%d)", dict->name, word);
     dict_wlock(dict);
 
     int r = dfa_trie_add(dict->trie, word, ext);
@@ -71,6 +75,7 @@ int dict_match_json(dict_t *dict, char *content, cJSON *js)
 
 void dict_destroy(dict_t *dict)
 {
+    log_debug("dict destroy (%d)", dict->name);
     pthread_rwlock_destroy(&dict->rwlock);
     dfa_trie_release(dict->trie);
     free(dict);
